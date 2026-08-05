@@ -20,8 +20,18 @@
                 <input type="text" name="query_name" value="{{ query_name }}" class="form-input" placeholder="e.g. Prestige International, Alfa Beta, SOS Manpower" required style="font-size: 1.05rem; padding: 0.85rem 1rem;">
             </div>
             
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label class="form-label">Registry Check Type</label>
+                <select name="check_type" class="form-input" style="font-size: 1rem; padding: 0.6rem 1rem; width: 100%; background: #0f172a; border: 1px solid var(--border-glass); color: #fff; border-radius: var(--radius-sm);">
+                    <option value="all" {% if not check_type or check_type == 'all' %}selected{% endif %}>All (Manpower Agency & Consultancies)</option>
+                    <option value="agency" {% if check_type == 'agency' %}selected{% endif %}>Manpower Agency (DoFE Licensed Only)</option>
+                    <option value="education" {% if check_type == 'education' %}selected{% endif %}>Education Consultancy (Curated Study-Abroad)</option>
+                    <option value="business" {% if check_type == 'business' %}selected{% endif %}>Business Consultancy (Curated Corporate)</option>
+                </select>
+            </div>
+
             <div class="form-group">
-                <label class="form-label">DoFE License Number (Optional)</label>
+                <label class="form-label">DoFE License Number (Optional — For Manpower Agencies)</label>
                 <input type="text" name="license_number" class="form-input" placeholder="e.g. 1050/074/075">
             </div>
 

@@ -17,6 +17,7 @@ urlpatterns = [
     path('verify/agency/', views.verify_agency, name='verify_agency'),
     path('verify/university/', views.verify_university, name='verify_university'),
     path('verify/offer-letter/', views.verify_offer_letter, name='verify_offer_letter'),
+    path('verify/scholarship-letter/', views.verify_scholarship_letter, name='verify_scholarship_letter'),
 
     # Report & Verdict Card & Chatbot
     path('report-scam/', views.report_scam, name='report_scam'),

@@ -1,5 +1,6 @@
 from django.test import TestCase
-from main.models import Agency, Consultancy, University, VerificationRecord, ScamReport
+from verification.models import Agency, Consultancy, University
+from main.models import VerificationRecord, ScamReport
 from main.fuzzy_matcher import match_entity
 from main.rule_engine import evaluate_verdict
 

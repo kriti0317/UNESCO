@@ -3,7 +3,7 @@ import json
 import requests
 from django.db.models import Q
 from django.conf import settings
-from main.models import Agency, Consultancy, University
+from verification.models import Agency, Consultancy, University
 
 SYSTEM_PROMPT = """You are 'Aasha' (Hope), the lively, friendly, and deeply caring AI Safety Assistant for Scam Verifier. You are here to empower Nepali families with clear, warm, encouraging, and accurate guidance regarding foreign employment manpower agencies, education consultancies, foreign universities, and scholarship safety.
 

@@ -2,61 +2,6 @@ import uuid
 from django.db import models
 from django.contrib.auth.models import User
 
-class Agency(models.Model):
-    STATUS_CHOICES = (
-        ('ACTIVE', 'Active / Licensed'),
-        ('EXPIRED', 'License Expired'),
-        ('CANCELLED', 'License Cancelled / Suspended'),
-    )
-
-    name = models.CharField(max_length=255, db_index=True)
-    license_number = models.CharField(max_length=100, blank=True, null=True, db_index=True)
-    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='ACTIVE')
-    address = models.TextField(blank=True, default='')
-    contact = models.CharField(max_length=200, blank=True, default='')
-    source_url = models.URLField(default="https://foreignjob.dofe.gov.np")
-    last_synced_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        verbose_name_plural = "Agencies"
-        ordering = ['name']
-
-    def __str__(self):
-        return f"{self.name} (License: {self.license_number or 'N/A'}) - {self.get_status_display()}"
-
-
-class Consultancy(models.Model):
-    name = models.CharField(max_length=255, db_index=True)
-    status = models.CharField(max_length=100, default='MANUALLY_CURATED')
-    source_note = models.CharField(max_length=255, default='manually curated, not government-verified')
-    address = models.TextField(blank=True, default='')
-    contact = models.CharField(max_length=200, blank=True, default='')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name_plural = "Consultancies"
-        ordering = ['name']
-
-    def __str__(self):
-        return f"{self.name} (Curated)"
-
-
-class University(models.Model):
-    name = models.CharField(max_length=255, db_index=True)
-    country = models.CharField(max_length=100, db_index=True)
-    source = models.CharField(max_length=100, default='Hipolabs/Wikipedia')
-    recognized = models.BooleanField(default=True)
-    website = models.URLField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name_plural = "Universities"
-        ordering = ['country', 'name']
-
-    def __str__(self):
-        return f"{self.name} ({self.country})"
-
-
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     phone_number = models.CharField(max_length=20, blank=True, default='')

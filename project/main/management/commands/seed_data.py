@@ -1,7 +1,7 @@
 import requests
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from main.models import Agency, Consultancy, University
+from verification.models import Agency, Consultancy, University
 
 class Command(BaseCommand):
     help = 'Seeds initial Agency, Consultancy, and University database records'

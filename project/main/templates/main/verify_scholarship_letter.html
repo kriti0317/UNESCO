@@ -1,0 +1,258 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Upload & Verify Scholarship Letter — Scam Verifier{% endblock %}
+
+{% block content %}
+<div style="max-width: 850px; margin: 0 auto;">
+    
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Scholarship / Study-Abroad Letter Pipeline</h2>
+        <p style="color: var(--text-muted);">
+            3-Stage Pipeline: AI OCR & Entity Extraction &rarr; Database Registry lookup (University + Consultancy) &rarr; Fixed Deterministic Decision Table
+        </p>
+    </div>
+
+    <!-- Upload & Manual Paste Form Card -->
+    <div class="glass-card" style="margin-bottom: 2rem;">
+        
+        <!-- Tab Navigation -->
+        <div style="display: flex; gap: 1rem; border-bottom: 1px solid var(--border-glass); padding-bottom: 0.75rem; margin-bottom: 1.5rem;">
+            <button id="tabUploadBtn" class="btn-outline" style="border-color: var(--primary); color: #fff;">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Upload Document Scan
+            </button>
+            <button id="tabPasteBtn" class="btn-outline">
+                <i class="fa-solid fa-paste"></i> Manual Text Paste Fallback
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'main:verify_scholarship_letter' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- Tab 1: File Upload -->
+            <div id="tabUploadArea" class="form-group">
+                <label class="form-label">Upload Scholarship Letter / Admission Offer (Image / Scan / PDF)</label>
+                <div style="border: 2px dashed var(--border-glass); border-radius: var(--radius-md); padding: 2rem; text-align: center; background: rgba(15, 23, 42, 0.4); cursor: pointer;" onclick="document.getElementById('fileInput').click();">
+                    <i class="fa-solid fa-file-invoice" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 0.75rem;"></i>
+                    <p style="font-size: 1rem; color: #ffffff;">Click or Drag & Drop Scholarship Offer Letter</p>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Supports JPG, PNG, WEBP, PDF, TXT files</p>
+                    <input type="file" id="fileInput" name="scholarship_letter_file" accept="image/*,.txt,.pdf" style="display: none;" onchange="updateFileName(this)">
+                    <div id="fileNameDisplay" style="margin-top: 0.75rem; font-weight: 600; color: var(--accent-green);"></div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Manual Text Paste -->
+            <div id="tabPasteArea" class="form-group" style="display: none;">
+                <label class="form-label">Paste Scholarship Letter Text</label>
+                <textarea name="pasted_text" rows="6" class="form-textarea" placeholder="Paste the text of your scholarship offer, university admission, or consultancy email here... (e.g. 'University of Sydney has offered you 100% scholarship. Deposit $1000 application fee immediately via personal eSewa to counselor...')"></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%); width: 100%; justify-content: center; font-size: 1.05rem; padding: 0.85rem;">
+                <i class="fa-solid fa-microchip"></i> Run Scholarship Verification Pipeline
+            </button>
+        </form>
+    </div>
+
+    <!-- Results Display -->
+    {% if result %}
+        <div class="glass-card" style="border-top: 4px solid {% if result.verdict_data.badge_color == 'green' %}#22c55e{% elif result.verdict_data.badge_color == 'yellow' %}#eab308{% elif result.verdict_data.badge_color == 'red' %}#ef4444{% else %}#94a3b8{% endif %};">
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+                <div>
+                    <span style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Pipeline Verification Result</span>
+                    <h3 style="font-size: 1.5rem; color: #ffffff;">{{ result.extracted_uni|default:"Unextracted University" }}</h3>
+                </div>
+                
+                <div>
+                    <span class="verdict-badge badge-{{ result.verdict_data.badge_color }}">
+                        {{ result.verdict_data.verdict_title }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Stage 1 Breakdown -->
+            <div style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass); margin-bottom: 1.25rem;">
+                <h4 style="font-size: 1rem; color: var(--primary); margin-bottom: 0.5rem;">
+                    Stage 1 (AI/OCR Entity Extraction): <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: normal;">({{ result.extractor_used }})</span>
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem;">
+                    <div><strong>Extracted University:</strong> {{ result.extracted_uni|default:"Not Extracted" }}</div>
+                    <div><strong>Destination Country:</strong> {{ result.extracted_country|default:"Not Extracted" }}</div>
+                    {% if result.extracted_fields.scholarship_provider %}
+                        <div><strong>Scholarship Provider:</strong> {{ result.extracted_fields.scholarship_provider }}</div>
+                    {% endif %}
+                    {% if result.extracted_fields.consultancy_name %}
+                        <div><strong>Agent/Consultancy Mentioned:</strong> {{ result.extracted_fields.consultancy_name }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Stage 2 Breakdown: University Check -->
+            <div style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass); margin-bottom: 1.25rem;">
+                <h4 style="font-size: 1rem; color: var(--accent-green); margin-bottom: 0.5rem;">
+                    Stage 2 (University Database Match):
+                </h4>
+                <div style="font-size: 0.9rem;">
+                    {% if result.uni_is_matched and result.matched_uni %}
+                        <div><strong>Matched University:</strong> {{ result.matched_uni.name }}</div>
+                        <div><strong>Country:</strong> {{ result.matched_uni.country }}</div>
+                        {% if result.matched_uni.domain %}
+                            <div><strong>Registered Domain:</strong> <code style="color: var(--primary);">{{ result.matched_uni.domain }}</code></div>
+                        {% endif %}
+                    {% else %}
+                        <div style="color: var(--accent-red);">
+                            <strong>University Match Status:</strong> NOT FOUND in recognized registries.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Stage 2 Breakdown: Consultancy Check (If Mentioned) -->
+            {% if result.extracted_fields.consultancy_name %}
+                <div style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass); margin-bottom: 1.25rem;">
+                    <h4 style="font-size: 1rem; color: var(--accent-yellow); margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span>Stage 2 (Education Consultancy Match):</span>
+                        <span class="verdict-badge badge-{% if result.cons_check_data.verdict == '🔴 High Risk' %}red{% else %}yellow{% endif %}" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                            {{ result.cons_check_data.verdict }}
+                        </span>
+                    </h4>
+                    <div style="font-size: 0.9rem;">
+                        {% if result.cons_check_data.details.matched_record %}
+                            <div><strong>Matched Consultancy:</strong> {{ result.cons_check_data.details.matched_record.name }}</div>
+                            <div><strong>Consultancy Type:</strong> {{ result.cons_check_data.details.matched_record.consultancy_type|title }}</div>
+                            <div><strong>Curation Status:</strong> Curated Record (No public government registry exists)</div>
+                            {% if result.cons_check_data.details.matched_record.address %}
+                                <div><strong>Address:</strong> {{ result.cons_check_data.details.matched_record.address }}</div>
+                            {% endif %}
+                        {% else %}
+                            <div style="color: var(--accent-red);">
+                                <strong>Consultancy Registry Match:</strong> NOT FOUND in verified registries (85% threshold).
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Stage 3 Suspicious Red Flag Phrases -->
+            <div style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass); margin-bottom: 1.5rem;">
+                <h4 style="font-size: 1rem; color: var(--accent-red); margin-bottom: 0.5rem;">
+                    Stage 3 (Decision Matrix & Suspicious Flags):
+                </h4>
+                {% if result.suspicious_phrases %}
+                    <ul style="padding-left: 1.25rem; color: #f87171; font-size: 0.9rem;">
+                        {% for phrase in result.suspicious_phrases %}
+                            <li style="margin-bottom: 0.35rem;">⚠️ {{ phrase }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p style="color: var(--accent-green); font-size: 0.9rem;">
+                        <i class="fa-solid fa-circle-check"></i> No suspicious upfront fee requests or unrealistic scholarship guarantees detected.
+                    </p>
+                {% endif %}
+            </div>
+
+            <!-- Verdict Rationale -->
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="font-size: 1rem; margin-bottom: 0.5rem;">Verdict Rationale:</h4>
+                <ul style="padding-left: 1.25rem; color: #cbd5e1; font-size: 0.9rem;">
+                    {% for reason in result.verdict_data.reasons %}
+                        <li style="margin-bottom: 0.35rem;">{{ reason }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; border-top: 1px solid var(--border-glass); padding-top: 1.25rem;">
+                <a href="{% url 'main:verdict_card' result.record_uuid %}" class="btn-primary" target="_blank">
+                    <i class="fa-solid fa-share-nodes"></i> View Shareable Verdict Card
+                </a>
+
+                {% if result.verdict_data.verdict == 'HIGH_RISK' %}
+                    <button type="button" class="btn-danger" onclick="openReportModal('{{ result.extracted_uni|escapejs }}')">
+                        <i class="fa-solid fa-flag"></i> Report Scam to Authorities
+                    </button>
+                {% endif %}
+            </div>
+
+        </div>
+    {% endif %}
+
+</div>
+
+<!-- Report Scam Modal -->
+<div id="reportModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 1rem;">
+    <div class="glass-card" style="width: 100%; max-width: 500px; background: #0f172a;">
+        <h3 style="font-size: 1.35rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--accent-red);">
+            <i class="fa-solid fa-shield-virus"></i> Report Fraudulent Scholarship / Agent
+        </h3>
+        
+        <form method="POST" action="{% url 'main:report_scam' %}">
+            {% csrf_token %}
+            <input type="hidden" id="modalEntityName" name="entity_name" value="">
+            <input type="hidden" name="entity_type" value="UNIVERSITY">
+
+            <div class="form-group">
+                <label class="form-label">Reason for Reporting</label>
+                <textarea name="reason" rows="3" class="form-textarea" required placeholder="Describe the scam details (e.g. agent requested Khalti payment for application fee waiver)..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Your Phone Number (Optional)</label>
+                <input type="text" name="phone" class="form-input" placeholder="+977-9800000000">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Your Email (Optional)</label>
+                <input type="email" name="email" class="form-input" placeholder="email@example.com">
+            </div>
+
+            <div style="background: rgba(56, 189, 248, 0.1); padding: 0.75rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+                <i class="fa-solid fa-circle-info"></i> Report will be logged to the official Scam Registry database.
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                <button type="button" class="btn-outline" onclick="closeReportModal()">Cancel</button>
+                <button type="submit" class="btn-danger">Submit Official Report</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const tabUploadBtn = document.getElementById('tabUploadBtn');
+    const tabPasteBtn = document.getElementById('tabPasteBtn');
+    const tabUploadArea = document.getElementById('tabUploadArea');
+    const tabPasteArea = document.getElementById('tabPasteArea');
+
+    tabUploadBtn.addEventListener('click', () => {
+        tabUploadArea.style.display = 'block';
+        tabPasteArea.style.display = 'none';
+        tabUploadBtn.style.borderColor = 'var(--primary)';
+        tabPasteBtn.style.borderColor = 'var(--border-glass)';
+    });
+
+    tabPasteBtn.addEventListener('click', () => {
+        tabUploadArea.style.display = 'none';
+        tabPasteArea.style.display = 'block';
+        tabPasteBtn.style.borderColor = 'var(--primary)';
+        tabUploadBtn.style.borderColor = 'var(--border-glass)';
+    });
+
+    function updateFileName(input) {
+        const display = document.getElementById('fileNameDisplay');
+        if (input.files && input.files[0]) {
+            display.innerText = 'Selected File: ' + input.files[0].name;
+        }
+    }
+
+    function openReportModal(orgName) {
+        document.getElementById('modalEntityName').value = orgName || 'Unextracted Scholarship Offer';
+        document.getElementById('reportModal').style.display = 'flex';
+    }
+
+    function closeReportModal() {
+        document.getElementById('reportModal').style.display = 'none';
+    }
+</script>
+{% endblock %}

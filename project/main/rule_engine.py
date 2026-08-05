@@ -121,7 +121,7 @@ def evaluate_verdict(entity_name, matched_entity, is_matched, entity_type, suspi
         reasons.append(f"DoFE License Number: {lic_num}")
         reasons.append(f"Government License Status: {status}")
         
-        if status == 'ACTIVE':
+        if status.upper() == 'ACTIVE':
             if len(suspicious_phrases) > 0:
                 reasons.append(f"Caution: Document contains {len(suspicious_phrases)} suspicious phrase(s).")
                 return {

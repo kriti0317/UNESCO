@@ -8,7 +8,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
-from .models import Agency, Consultancy, University, UserProfile, ScamReport, VerificationRecord
+from verification.models import Agency, Consultancy, University
+from .models import UserProfile, ScamReport, VerificationRecord
 from .fuzzy_matcher import match_entity
 from .rule_engine import evaluate_verdict
 from .ocr_extractor import extract_text_from_file, process_offer_letter_text
@@ -88,42 +89,84 @@ def logout_view(request):
 def verify_agency(request):
     query_name = request.GET.get('query_name', '').strip() or request.POST.get('query_name', '').strip()
     license_number = request.GET.get('license_number', '').strip() or request.POST.get('license_number', '').strip()
+    check_type = request.GET.get('check_type', 'all').strip().lower()
     
     result = None
     if query_name:
-        # Search Agencies first via 85% fuzzy match
-        agencies = Agency.objects.all()
-        agency_match, agency_score, agency_found = match_entity(query_name, agencies, name_field='name', threshold=85.0)
+        from verification.fuzzy_matcher import fuzzy_find
+        from verification.verdicts import verify_agency as core_verify_agency
+        from verification.verdicts import verify_consultancy as core_verify_consultancy
 
-        # Search Consultancies via 85% fuzzy match
-        consultancies = Consultancy.objects.all()
-        consultancy_match, consultancy_score, consultancy_found = match_entity(query_name, consultancies, name_field='name', threshold=85.0)
+        best_agency = None
+        ag_score = 0
+        best_consultancy = None
+        cs_score = 0
+
+        # Search based on check_type
+        if check_type in ['all', 'agency']:
+            best_agency, ag_score = fuzzy_find(query_name, Agency.objects.all(), field="name")
+        
+        if check_type in ['all', 'education', 'business']:
+            c_qs = Consultancy.objects.all()
+            if check_type == 'education':
+                c_qs = c_qs.filter(consultancy_type='education')
+            elif check_type == 'business':
+                c_qs = c_qs.filter(consultancy_type='business')
+            best_consultancy, cs_score = fuzzy_find(query_name, c_qs, field="name")
 
         best_match = None
         is_matched = False
         entity_type = 'AGENCY'
         score = 0.0
 
-        if agency_found and (agency_score >= consultancy_score):
-            best_match = agency_match
+        if best_agency and (ag_score >= cs_score):
+            best_match = best_agency
             is_matched = True
             entity_type = 'AGENCY'
-            score = agency_score
-        elif consultancy_found:
-            best_match = consultancy_match
+            score = ag_score
+        elif best_consultancy:
+            best_match = best_consultancy
             is_matched = True
             entity_type = 'CONSULTANCY'
-            score = consultancy_score
-        elif agency_score > 0 or consultancy_score > 0:
-            score = max(agency_score, consultancy_score)
+            score = cs_score
+        elif ag_score > 0 or cs_score > 0:
+            score = max(ag_score, cs_score)
 
-        verdict_data = evaluate_verdict(
-            entity_name=query_name,
-            matched_entity=best_match,
-            is_matched=is_matched,
-            entity_type=entity_type,
-            suspicious_phrases=[]
-        )
+        # Get core verdict
+        if entity_type == 'AGENCY':
+            verdict_obj = core_verify_agency(query_name)
+        else:
+            c_type = best_match.consultancy_type if best_match else ("business" if check_type == 'business' else "education")
+            verdict_obj = core_verify_consultancy(query_name, consultancy_type=c_type)
+
+        # Map to dict structure expected by template
+        badge_color = 'gray'
+        if verdict_obj.risk_level == 'SAFE':
+            badge_color = 'green'
+        elif verdict_obj.risk_level == 'SUSPICIOUS':
+            badge_color = 'yellow'
+        elif verdict_obj.risk_level == 'HIGH_RISK':
+            badge_color = 'red'
+
+        verdict_title = verdict_obj.label
+        if verdict_obj.risk_level == 'SAFE':
+            verdict_title = f"🟢 {verdict_obj.label}"
+        elif verdict_obj.risk_level == 'SUSPICIOUS':
+            verdict_title = f"🟡 {verdict_obj.label}"
+        elif verdict_obj.risk_level == 'HIGH_RISK':
+            verdict_title = f"🔴 {verdict_obj.label}"
+        else:
+            verdict_title = f"⚪ {verdict_obj.label}"
+
+        verdict_data = {
+            'verdict': verdict_obj.risk_level,
+            'badge_color': badge_color,
+            'verdict_title': verdict_title,
+            'reasons': verdict_obj.reasons,
+            'source_info': 'DoFE Foreign Job Search Portal' if entity_type == 'AGENCY' else (best_match.source_note if best_match else ''),
+            'license_status': 'Active License' if (entity_type == 'AGENCY' and best_match and best_match.status == 'active') else ('Not Licensed' if not is_matched else 'Curated Record'),
+            'is_curated_disclaimer': (entity_type == 'CONSULTANCY' and is_matched),
+        }
 
         record = VerificationRecord.objects.create(
             user=request.user if request.user.is_authenticated else None,
@@ -133,7 +176,7 @@ def verify_agency(request):
             matched_entity_type=entity_type if best_match else '',
             license_status=verdict_data['license_status'],
             match_score=score,
-            verdict=verdict_data['verdict'],
+            verdict=verdict_obj.risk_level,
             verdict_display=verdict_data['verdict_title'],
             reasons=verdict_data['reasons'],
             source_info=verdict_data['source_info']
@@ -148,12 +191,9 @@ def verify_agency(request):
             'verdict_data': verdict_data,
         }
 
-    return render(request, 'main/verify_agency.html', {'query_name': query_name, 'result': result})
+    return render(request, 'main/verify_agency.html', {'query_name': query_name, 'check_type': check_type, 'result': result})
 
 
-# ----------------------------------------------------
-# 4. University Verification Flow
-# ----------------------------------------------------
 def verify_university(request):
     university_name = request.GET.get('university_name', '').strip() or request.POST.get('university_name', '').strip()
     country = request.GET.get('country', '').strip() or request.POST.get('country', '').strip()
@@ -164,15 +204,42 @@ def verify_university(request):
         if country:
             unis = unis.filter(country__icontains=country)
             
-        uni_match, score, is_matched = match_entity(university_name, unis, name_field='name', threshold=85.0)
+        from verification.fuzzy_matcher import fuzzy_find
+        from verification.verdicts import verify_university as core_verify_university
 
-        verdict_data = evaluate_verdict(
-            entity_name=university_name,
-            matched_entity=uni_match,
-            is_matched=is_matched,
-            entity_type='UNIVERSITY',
-            suspicious_phrases=[]
-        )
+        uni_match, score = fuzzy_find(university_name, unis, field="name")
+        is_matched = uni_match is not None
+
+        # Get core verdict
+        verdict_obj = core_verify_university(university_name)
+
+        badge_color = 'gray'
+        if verdict_obj.risk_level == 'SAFE':
+            badge_color = 'green'
+        elif verdict_obj.risk_level == 'SUSPICIOUS':
+            badge_color = 'yellow'
+        elif verdict_obj.risk_level == 'HIGH_RISK':
+            badge_color = 'red'
+
+        verdict_title = verdict_obj.label
+        if verdict_obj.risk_level == 'SAFE':
+            verdict_title = f"🟢 {verdict_obj.label}"
+        elif verdict_obj.risk_level == 'SUSPICIOUS':
+            verdict_title = f"🟡 {verdict_obj.label}"
+        elif verdict_obj.risk_level == 'HIGH_RISK':
+            verdict_title = f"🔴 {verdict_obj.label}"
+        else:
+            verdict_title = f"⚪ {verdict_obj.label}"
+
+        verdict_data = {
+            'verdict': verdict_obj.risk_level,
+            'badge_color': badge_color,
+            'verdict_title': verdict_title,
+            'reasons': verdict_obj.reasons,
+            'source_info': 'Hipolabs/Wikipedia',
+            'license_status': 'Recognized Institution',
+            'is_curated_disclaimer': False,
+        }
 
         record = VerificationRecord.objects.create(
             user=request.user if request.user.is_authenticated else None,
@@ -183,7 +250,7 @@ def verify_university(request):
             matched_entity_type='UNIVERSITY' if uni_match else '',
             license_status=verdict_data['license_status'],
             match_score=score,
-            verdict=verdict_data['verdict'],
+            verdict=verdict_obj.risk_level,
             verdict_display=verdict_data['verdict_title'],
             reasons=verdict_data['reasons'],
             source_info=verdict_data['source_info']
@@ -202,9 +269,6 @@ def verify_university(request):
     return render(request, 'main/verify_university.html', {'university_name': university_name, 'country': country, 'result': result})
 
 
-# ----------------------------------------------------
-# 5. Offer Letter Upload & 3-Stage Verification Pipeline
-# ----------------------------------------------------
 def verify_offer_letter(request):
     result = None
     if request.method == 'POST':
@@ -215,53 +279,62 @@ def verify_offer_letter(request):
         if uploaded_file and not raw_text:
             raw_text = extract_text_from_file(uploaded_file)
 
-        # Stage 1: Text & Phrase Extraction (AI / Regex)
-        extracted = process_offer_letter_text(raw_text)
-        org_name = extracted['organization_name']
+        from verification.pipelines import run_offer_letter_pipeline
+        from verification.fuzzy_matcher import fuzzy_find
+
+        # Run Stage 1/2/3 pipeline
+        pipeline_result = run_offer_letter_pipeline(raw_text)
+        
+        extracted = pipeline_result['extracted_fields']
+        org_name = extracted['agency_name']
         extracted_country = extracted['country']
-        suspicious_phrases = extracted['suspicious_phrases']
+        suspicious_phrases = pipeline_result['ai_detected_flags'] + pipeline_result['evidence']
 
-        # Stage 2: Database Match
-        best_match = None
-        is_matched = False
-        score = 0.0
-        entity_type = 'OFFER_LETTER'
+        # Check DB matching agency for UI context
+        best_match, score = fuzzy_find(org_name, Agency.objects.all(), field="name")
+        is_matched = best_match is not None
+        entity_type = 'AGENCY'
 
-        if org_name:
-            # Check Agencies first
-            ag_match, ag_score, ag_found = match_entity(org_name, Agency.objects.all(), name_field='name', threshold=85.0)
-            # Check Consultancies
-            cs_match, cs_score, cs_found = match_entity(org_name, Consultancy.objects.all(), name_field='name', threshold=85.0)
-            # Check Universities
-            un_match, un_score, un_found = match_entity(org_name, University.objects.all(), name_field='name', threshold=85.0)
+        agency_verdict = pipeline_result['agency_check']
+        badge_color = 'gray'
+        if agency_verdict.risk_level == 'SAFE':
+            badge_color = 'green'
+        elif agency_verdict.risk_level == 'SUSPICIOUS':
+            badge_color = 'yellow'
+        elif agency_verdict.risk_level == 'HIGH_RISK':
+            badge_color = 'red'
 
-            if ag_found:
-                best_match, score, is_matched, entity_type = ag_match, ag_score, True, 'AGENCY'
-            elif cs_found:
-                best_match, score, is_matched, entity_type = cs_match, cs_score, True, 'CONSULTANCY'
-            elif un_found:
-                best_match, score, is_matched, entity_type = un_match, un_score, True, 'UNIVERSITY'
+        verdict_title = agency_verdict.label
+        if agency_verdict.risk_level == 'SAFE':
+            verdict_title = f"🟢 {agency_verdict.label}"
+        elif agency_verdict.risk_level == 'SUSPICIOUS':
+            verdict_title = f"🟡 {agency_verdict.label}"
+        elif agency_verdict.risk_level == 'HIGH_RISK':
+            verdict_title = f"🔴 {agency_verdict.label}"
+        else:
+            verdict_title = f"⚪ {agency_verdict.label}"
 
-        # Stage 3: Fixed Deterministic Rule Engine Decision Table
-        verdict_data = evaluate_verdict(
-            entity_name=org_name,
-            matched_entity=best_match,
-            is_matched=is_matched,
-            entity_type=entity_type,
-            suspicious_phrases=suspicious_phrases
-        )
+        verdict_data = {
+            'verdict': agency_verdict.risk_level,
+            'badge_color': badge_color,
+            'verdict_title': verdict_title,
+            'reasons': agency_verdict.reasons,
+            'source_info': 'DoFE Foreign Job Search Portal',
+            'license_status': 'Active License' if (best_match and best_match.status == 'active') else ('Not Licensed' if not is_matched else 'Expired/Cancelled'),
+            'is_curated_disclaimer': False,
+        }
 
-        # Save record (PRIVACY SAFE: No raw_text stored!)
+        # Save record
         record = VerificationRecord.objects.create(
             user=request.user if request.user.is_authenticated else None,
             verification_type='OFFER_LETTER',
             input_name=org_name or 'Uploaded Document',
             country=extracted_country,
             matched_entity_name=best_match.name if best_match else '',
-            matched_entity_type=entity_type if best_match else '',
+            matched_entity_type='AGENCY' if best_match else '',
             license_status=verdict_data['license_status'],
             match_score=score,
-            verdict=verdict_data['verdict'],
+            verdict=agency_verdict.risk_level,
             verdict_display=verdict_data['verdict_title'],
             suspicious_phrases=suspicious_phrases,
             reasons=verdict_data['reasons'],
@@ -273,13 +346,100 @@ def verify_offer_letter(request):
             'extracted_org': org_name,
             'extracted_country': extracted_country,
             'suspicious_phrases': suspicious_phrases,
-            'extractor_used': extracted['extractor_used'],
+            'extractor_used': 'Groq LLM Extractor' if getattr(settings, 'GROQ_API_KEY', None) else 'Regex Heuristic Extractor',
             'matched_entity': best_match,
             'is_matched': is_matched,
             'verdict_data': verdict_data,
         }
 
     return render(request, 'main/verify_offer_letter.html', {'result': result})
+
+
+def verify_scholarship_letter(request):
+    result = None
+    if request.method == 'POST':
+        raw_text_input = request.POST.get('pasted_text', '').strip()
+        uploaded_file = request.FILES.get('scholarship_letter_file')
+
+        raw_text = raw_text_input
+        if uploaded_file and not raw_text:
+            raw_text = extract_text_from_file(uploaded_file)
+
+        from verification.pipelines import run_scholarship_letter_pipeline
+        from verification.fuzzy_matcher import fuzzy_find
+
+        # Run pipeline
+        pipeline_result = run_scholarship_letter_pipeline(raw_text)
+
+        extracted = pipeline_result['extracted_fields']
+        uni_name = extracted['university_name']
+        extracted_country = extracted['country']
+        suspicious_phrases = pipeline_result['ai_detected_flags'] + pipeline_result['evidence']
+
+        # Find university in DB
+        matched_uni, score = fuzzy_find(uni_name, University.objects.all(), field="name")
+        uni_is_matched = matched_uni is not None
+
+        university_verdict = pipeline_result['university_check']
+        badge_color = 'gray'
+        if university_verdict.risk_level == 'SAFE':
+            badge_color = 'green'
+        elif university_verdict.risk_level == 'SUSPICIOUS':
+            badge_color = 'yellow'
+        elif university_verdict.risk_level == 'HIGH_RISK':
+            badge_color = 'red'
+
+        verdict_title = university_verdict.label
+        if university_verdict.risk_level == 'SAFE':
+            verdict_title = f"🟢 {university_verdict.label}"
+        elif university_verdict.risk_level == 'SUSPICIOUS':
+            verdict_title = f"🟡 {university_verdict.label}"
+        elif university_verdict.risk_level == 'HIGH_RISK':
+            verdict_title = f"🔴 {university_verdict.label}"
+        else:
+            verdict_title = f"⚪ {university_verdict.label}"
+
+        verdict_data = {
+            'verdict': university_verdict.risk_level,
+            'badge_color': badge_color,
+            'verdict_title': verdict_title,
+            'reasons': university_verdict.reasons,
+            'source_info': 'Hipolabs/Wikipedia',
+            'license_status': 'Recognized Institution',
+            'is_curated_disclaimer': False,
+        }
+
+        # Save record
+        record = VerificationRecord.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            verification_type='SCHOLARSHIP_LETTER',
+            input_name=uni_name or 'Uploaded Document',
+            country=extracted_country,
+            matched_entity_name=matched_uni.name if matched_uni else '',
+            matched_entity_type='UNIVERSITY' if matched_uni else '',
+            license_status=verdict_data['license_status'],
+            match_score=score,
+            verdict=university_verdict.risk_level,
+            verdict_display=verdict_data['verdict_title'],
+            suspicious_phrases=suspicious_phrases,
+            reasons=verdict_data['reasons'],
+            source_info=verdict_data['source_info']
+        )
+
+        result = {
+            'record_uuid': str(record.uuid),
+            'extracted_uni': uni_name,
+            'extracted_country': extracted_country,
+            'suspicious_phrases': suspicious_phrases,
+            'extractor_used': 'Groq LLM Extractor' if getattr(settings, 'GROQ_API_KEY', None) else 'Regex Heuristic Extractor',
+            'matched_uni': matched_uni,
+            'uni_is_matched': uni_is_matched,
+            'cons_check_data': pipeline_result['consultancy_check'],
+            'verdict_data': verdict_data,
+            'extracted_fields': extracted,
+        }
+
+    return render(request, 'main/verify_scholarship_letter.html', {'result': result})
 
 
 # ----------------------------------------------------

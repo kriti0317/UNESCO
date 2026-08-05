@@ -1,0 +1,332 @@
+[
+  {
+    "model": "verification.consultancy",
+    "pk": 1,
+    "fields": {
+      "name": "Alfa Beta Institute",
+      "consultancy_type": "education",
+      "address": "New Baneshwor, Kathmandu",
+      "notes": "Verified via manual curation, large-scale educational consultancy in Nepal.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 2,
+    "fields": {
+      "name": "Kangaroo Education Foundation",
+      "consultancy_type": "education",
+      "address": "Putalisadak, Kathmandu",
+      "notes": "Verified via site visit, registered educational consultant.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 3,
+    "fields": {
+      "name": "NIEC (Nepal International Educational Consultancy)",
+      "consultancy_type": "education",
+      "address": "Putalisadak, Kathmandu",
+      "notes": "Verified via curation, long-standing study abroad agency.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 4,
+    "fields": {
+      "name": "Grace International Educational Consultancy",
+      "consultancy_type": "education",
+      "address": "Minbhawan, Kathmandu",
+      "notes": "Curated study abroad agent with multiple branches.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 5,
+    "fields": {
+      "name": "Expert Education and Visa Services",
+      "consultancy_type": "education",
+      "address": "Maharajgunj, Kathmandu",
+      "notes": "Curated education consultant catering to Australian/global studies.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 6,
+    "fields": {
+      "name": "IDP Education Nepal",
+      "consultancy_type": "education",
+      "address": "Hattisar, Kathmandu",
+      "notes": "Official IELTS partner, highly recognized global education service provider.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 7,
+    "fields": {
+      "name": "AECC Global Nepal",
+      "consultancy_type": "education",
+      "address": "Kamalpokhari, Kathmandu",
+      "notes": "Curated international education consultancy.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 8,
+    "fields": {
+      "name": "Edwise Foundation",
+      "consultancy_type": "education",
+      "address": "New Baneshwor, Kathmandu",
+      "notes": "Specializes in US university placements.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 9,
+    "fields": {
+      "name": "Orbit International Education",
+      "consultancy_type": "education",
+      "address": "Putalisadak, Kathmandu",
+      "notes": "Provides test preparation and student counseling.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 10,
+    "fields": {
+      "name": "Global Reach Nepal",
+      "consultancy_type": "education",
+      "address": "Dillibazar, Kathmandu",
+      "notes": "Long-established education agent in South Asia.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 11,
+    "fields": {
+      "name": "Study International Consultancy",
+      "consultancy_type": "education",
+      "address": "Lalitpur, Nepal",
+      "notes": "Provides counseling for UK, Europe and North America.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 12,
+    "fields": {
+      "name": "Bridge International Educational Consultancy",
+      "consultancy_type": "education",
+      "address": "Kumaripati, Lalitpur",
+      "notes": "Curated study abroad consultancy in Lalitpur.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 13,
+    "fields": {
+      "name": "Landmark Education Consultancy",
+      "consultancy_type": "education",
+      "address": "Putalisadak, Kathmandu",
+      "notes": "Verified study abroad consulting firm.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 14,
+    "fields": {
+      "name": "Options Educational Consultancy",
+      "consultancy_type": "education",
+      "address": "New Baneshwor, Kathmandu",
+      "notes": "Curated overseas education service provider.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 15,
+    "fields": {
+      "name": "Silicon Education Network",
+      "consultancy_type": "education",
+      "address": "Putalisadak, Kathmandu",
+      "notes": "Test prep and educational consulting.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 16,
+    "fields": {
+      "name": "BizServe Foundation",
+      "consultancy_type": "business",
+      "address": "Tripureshwar, Kathmandu",
+      "notes": "Manually curated business registry, corporate advisory & foreign investment.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 17,
+    "fields": {
+      "name": "Elite Business Consultancy",
+      "consultancy_type": "business",
+      "address": "Koteshwor, Kathmandu",
+      "notes": "Curated corporate services, tax, and company registration advisor.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 18,
+    "fields": {
+      "name": "Nepal Business Consultancy",
+      "consultancy_type": "business",
+      "address": "Naya Baneshwor, Kathmandu",
+      "notes": "Specializes in business licensing, company registration, and legal counsel.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 19,
+    "fields": {
+      "name": "B&B Business Consulting",
+      "consultancy_type": "business",
+      "address": "Lazimpat, Kathmandu",
+      "notes": "Curated financial management and business advisory services.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 20,
+    "fields": {
+      "name": "Synergetic Business Solutions",
+      "consultancy_type": "business",
+      "address": "Sanepa, Lalitpur",
+      "notes": "Curated corporate consulting, HR, and compliance services.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 21,
+    "fields": {
+      "name": "Apex Business Consultancy",
+      "consultancy_type": "business",
+      "address": " Tinkune, Kathmandu",
+      "notes": "Business registration, accounting setup, and audit support.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 22,
+    "fields": {
+      "name": "Frontline Consulting Group",
+      "consultancy_type": "business",
+      "address": " Kamaladi, Kathmandu",
+      "notes": "Market research and business feasibility advisory.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 23,
+    "fields": {
+      "name": "Pioneer Law & Business Associates",
+      "consultancy_type": "business",
+      "address": "Anamnagar, Kathmandu",
+      "notes": "Corporate law and business structure advisory.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 24,
+    "fields": {
+      "name": "Kantipur Business Consulting",
+      "consultancy_type": "business",
+      "address": "Putalisadak, Kathmandu",
+      "notes": "Tax filing, company registration, and small business support.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 25,
+    "fields": {
+      "name": "Himalayan Business Advisory",
+      "consultancy_type": "business",
+      "address": "Kupondole, Lalitpur",
+      "notes": "Enterprise development and investment facilitation.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 26,
+    "fields": {
+      "name": "Corporate Development Nepal",
+      "consultancy_type": "business",
+      "address": "Bhatbhateni, Kathmandu",
+      "notes": "Corporate growth strategy and partnership brokerage.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 27,
+    "fields": {
+      "name": "Venture Startups Nepal",
+      "consultancy_type": "business",
+      "address": "Pulchowk, Lalitpur",
+      "notes": "Incubator and startup business registration advisory.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 28,
+    "fields": {
+      "name": "Dynamic Business Advisory",
+      "consultancy_type": "business",
+      "address": "Gairidhara, Kathmandu",
+      "notes": "Joint venture and foreign investment facilitation consulting.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 29,
+    "fields": {
+      "name": "Kathmandu Business Advisors",
+      "consultancy_type": "business",
+      "address": "Thamel, Kathmandu",
+      "notes": "Tourism and hospitality sector business consultancies.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "verification.consultancy",
+    "pk": 30,
+    "fields": {
+      "name": "Everest Business Consulting",
+      "consultancy_type": "business",
+      "address": "Chabahil, Kathmandu",
+      "notes": "General corporate structure consultancy.",
+      "added_on": "2026-08-05T12:00:00Z"
+    }
+  }
+]

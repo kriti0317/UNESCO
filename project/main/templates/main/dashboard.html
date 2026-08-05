@@ -47,7 +47,7 @@
             <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(34, 197, 94, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-green); font-size: 1.5rem; margin-bottom: 1.25rem;">
                 <i class="fa-solid fa-graduation-cap"></i>
             </div>
-            <h3 style="font-size: 1.4rem; margin-bottom: 0.5rem;">2. Verify University / Scholarship</h3>
+            <h3 style="font-size: 1.4rem; margin-bottom: 0.5rem;">2. Verify University</h3>
             <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">
                 Cross-reference foreign universities against recognized global domain registries (Hipolabs/Wikipedia).
             </p>
@@ -73,6 +73,25 @@
         </div>
         <a href="{% url 'main:verify_offer_letter' %}" class="btn-primary" style="background: linear-gradient(135deg, #ca8a04 0%, #a16207 100%); justify-content: center; width: 100%;">
             Check Offer Letter <i class="fa-solid fa-arrow-right"></i>
+        </a>
+    </div>
+
+    <!-- Action 4: Upload Scholarship Letter -->
+    <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -20px; right: -20px; font-size: 6rem; color: rgba(168, 85, 247, 0.05); pointer-events: none;">
+            <i class="fa-solid fa-file-invoice"></i>
+        </div>
+        <div>
+            <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(168, 85, 247, 0.15); display: flex; align-items: center; justify-content: center; color: #a855f7; font-size: 1.5rem; margin-bottom: 1.25rem;">
+                <i class="fa-solid fa-file-invoice"></i>
+            </div>
+            <h3 style="font-size: 1.4rem; margin-bottom: 0.5rem;">4. Verify Scholarship Offer</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">
+                Scan scholarship and study-abroad letters. Detect tuition fee scams and verify international universities and agents.
+            </p>
+        </div>
+        <a href="{% url 'main:verify_scholarship_letter' %}" class="btn-primary" style="background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%); justify-content: center; width: 100%;">
+            Check Scholarship Letter <i class="fa-solid fa-arrow-right"></i>
         </a>
     </div>
 </div>
