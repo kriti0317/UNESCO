@@ -1,0 +1,129 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Dashboard — Scam Verifier{% endblock %}
+
+{% block content %}
+<!-- Hero Header -->
+<div style="text-align: center; margin-bottom: 3rem;">
+    <span style="background: rgba(56, 189, 248, 0.1); color: var(--primary); padding: 0.4rem 1rem; border-radius: 50px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid rgba(56, 189, 248, 0.2);">
+        <i class="fa-solid fa-shield-halved"></i> Fixed Deterministic Verification Engine
+    </span>
+    <h1 style="font-size: 2.75rem; margin-top: 1rem; margin-bottom: 1rem; line-height: 1.2;">
+        Protect Your Family Before Paying Any Money
+    </h1>
+    <p style="font-size: 1.15rem; color: var(--text-muted); max-width: 720px; margin: 0 auto;">
+        Instant, reliable verification of Manpower Agencies, Education Consultancies, Foreign Universities, and Offer Letters using official Department of Foreign Employment (DoFE) registries.
+    </p>
+</div>
+
+<!-- 3 Entry Actions Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.75rem; margin-bottom: 3.5rem;">
+    
+    <!-- Action 1: Verify Agency / Consultancy -->
+    <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -20px; right: -20px; font-size: 6rem; color: rgba(56, 189, 248, 0.05); pointer-events: none;">
+            <i class="fa-solid fa-building-shield"></i>
+        </div>
+        <div>
+            <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.5rem; margin-bottom: 1.25rem;">
+                <i class="fa-solid fa-building-shield"></i>
+            </div>
+            <h3 style="font-size: 1.4rem; margin-bottom: 0.5rem;">1. Verify Agency / Consultancy</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">
+                Check if a recruitment agency holds an active license with DoFE or view curated consultancy records.
+            </p>
+        </div>
+        <a href="{% url 'main:verify_agency' %}" class="btn-primary" style="justify-content: center; width: 100%;">
+            Verify Agency <i class="fa-solid fa-arrow-right"></i>
+        </a>
+    </div>
+
+    <!-- Action 2: Verify University / Scholarship -->
+    <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -20px; right: -20px; font-size: 6rem; color: rgba(34, 197, 94, 0.05); pointer-events: none;">
+            <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+        <div>
+            <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(34, 197, 94, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-green); font-size: 1.5rem; margin-bottom: 1.25rem;">
+                <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <h3 style="font-size: 1.4rem; margin-bottom: 0.5rem;">2. Verify University / Scholarship</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">
+                Cross-reference foreign universities against recognized global domain registries (Hipolabs/Wikipedia).
+            </p>
+        </div>
+        <a href="{% url 'main:verify_university' %}" class="btn-primary" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); justify-content: center; width: 100%;">
+            Verify University <i class="fa-solid fa-arrow-right"></i>
+        </a>
+    </div>
+
+    <!-- Action 3: Upload Offer Letter -->
+    <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -20px; right: -20px; font-size: 6rem; color: rgba(234, 179, 8, 0.05); pointer-events: none;">
+            <i class="fa-solid fa-file-contract"></i>
+        </div>
+        <div>
+            <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(234, 179, 8, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-yellow); font-size: 1.5rem; margin-bottom: 1.25rem;">
+                <i class="fa-solid fa-file-contract"></i>
+            </div>
+            <h3 style="font-size: 1.4rem; margin-bottom: 0.5rem;">3. Upload Offer Letter</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">
+                OCR + AI entity extraction coupled with our 3-stage decision table to detect advance fee scams and red flags.
+            </p>
+        </div>
+        <a href="{% url 'main:verify_offer_letter' %}" class="btn-primary" style="background: linear-gradient(135deg, #ca8a04 0%, #a16207 100%); justify-content: center; width: 100%;">
+            Check Offer Letter <i class="fa-solid fa-arrow-right"></i>
+        </a>
+    </div>
+</div>
+
+<!-- Quick Statistics Bar -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; margin-bottom: 3.5rem;">
+    <div class="glass-card" style="padding: 1.25rem; text-align: center;">
+        <div style="font-size: 2rem; font-weight: 800; color: var(--primary);">{{ total_agencies }}</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">DoFE Manpower Agencies</div>
+    </div>
+    <div class="glass-card" style="padding: 1.25rem; text-align: center;">
+        <div style="font-size: 2rem; font-weight: 800; color: var(--accent-yellow);">{{ total_consultancies }}</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">Curated Consultancies</div>
+    </div>
+    <div class="glass-card" style="padding: 1.25rem; text-align: center;">
+        <div style="font-size: 2rem; font-weight: 800; color: var(--accent-green);">{{ total_universities }}</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">Recognized Universities</div>
+    </div>
+    <div class="glass-card" style="padding: 1.25rem; text-align: center;">
+        <div style="font-size: 2rem; font-weight: 800; color: #a855f7;">{{ total_verifications }}</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">Total Checks Performed</div>
+    </div>
+</div>
+
+<!-- Recent Verifications Audit Log -->
+<div class="glass-card">
+    <h3 style="font-size: 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary);"></i> Recent Public Verifications
+    </h3>
+
+    {% if recent_verifications %}
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            {% for item in recent_verifications %}
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; background: rgba(15, 23, 42, 0.5); border-radius: var(--radius-sm); border: 1px solid var(--border-glass);">
+                    <div>
+                        <strong style="color: #ffffff; font-size: 0.95rem;">{{ item.input_name }}</strong>
+                        <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.5rem;">({{ item.verification_type }})</span>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+                            Checked {{ item.created_at|timesince }} ago
+                        </div>
+                    </div>
+                    <div>
+                        <a href="{% url 'main:verdict_card' item.uuid %}" class="btn-outline" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+                            View Card <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p style="color: var(--text-muted);">No verification checks performed yet. Try searching an agency above!</p>
+    {% endif %}
+</div>
+{% endblock %}

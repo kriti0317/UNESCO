@@ -1,0 +1,59 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Create Account — Scam Verifier{% endblock %}
+
+{% block content %}
+<div style="max-width: 480px; margin: 2rem auto;">
+    
+    <div class="glass-card">
+        <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem; text-align: center;">Sign Up for Scam Verifier</h2>
+        <p style="color: var(--text-muted); font-size: 0.95rem; text-align: center; margin-bottom: 1.75rem;">
+            Create an account to track offer letter verification history and submit reports.
+        </p>
+
+        {% if error %}
+            <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 0.75rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; margin-bottom: 1.25rem;">
+                <i class="fa-solid fa-triangle-exclamation"></i> {{ error }}
+            </div>
+        {% endif %}
+
+        <form method="POST" action="{% url 'main:signup' %}">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" name="name" class="form-input" required placeholder="e.g. Salin Shrestha">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" name="email" class="form-input" required placeholder="name@example.com">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Phone Number</label>
+                <input type="text" name="phone" class="form-input" placeholder="+977-9800000000">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Country</label>
+                <input type="text" name="country" value="Nepal" class="form-input">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" name="password" class="form-input" required placeholder="••••••••">
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; font-size: 1.05rem; padding: 0.8rem; margin-top: 0.5rem;">
+                Create Account
+            </button>
+        </form>
+
+        <p style="text-align: center; font-size: 0.9rem; color: var(--text-muted); margin-top: 1.5rem;">
+            Already have an account? <a href="{% url 'main:login' %}">Log in here</a>
+        </p>
+    </div>
+
+</div>
+{% endblock %}

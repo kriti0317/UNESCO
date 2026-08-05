@@ -1,0 +1,40 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Report Submitted — Scam Verifier{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 2rem auto; text-align: center;">
+    
+    <div class="glass-card" style="border-top: 4px solid var(--accent-red); padding: 2.5rem 2rem;">
+        
+        <div style="width: 70px; height: 70px; border-radius: 50%; background: rgba(239, 68, 68, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-red); font-size: 2rem; margin: 0 auto 1.5rem auto;">
+            <i class="fa-solid fa-shield-circle-check"></i>
+        </div>
+
+        <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem; color: #ffffff;">Scam Report Successfully Submitted</h2>
+        
+        <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 1.5rem;">
+            Your report for <strong>{{ report.reported_entity_name }}</strong> has been logged to the Scam Verifier registry for investigation.
+        </p>
+
+        <!-- Tracking Badge -->
+        <div style="background: rgba(15, 23, 42, 0.7); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass); margin-bottom: 1.75rem;">
+            <span style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Official Tracking Reference ID</span>
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary); font-family: monospace; letter-spacing: 0.05em; margin-top: 0.25rem;">
+                {{ tracking_id }}
+            </div>
+        </div>
+
+        <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: var(--radius-sm); padding: 0.85rem; font-size: 0.85rem; color: #bae6fd; margin-bottom: 2rem; text-align: left;">
+            <i class="fa-solid fa-circle-info" style="margin-right: 0.5rem;"></i>
+            <strong>Ministry Integration Status:</strong> Real-time SMTP forwarding to Ministry of Home Affairs is <em>mocked / logged</em> for the hackathon demo. Live Ministry endpoint dispatch can be toggled via feature flag.
+        </div>
+
+        <a href="{% url 'main:dashboard' %}" class="btn-primary" style="justify-content: center;">
+            <i class="fa-solid fa-house"></i> Return to Dashboard
+        </a>
+
+    </div>
+
+</div>
+{% endblock %}

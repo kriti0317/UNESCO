@@ -1,0 +1,120 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Verify Manpower Agency & Consultancy — Scam Verifier{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Verify Manpower Agency or Consultancy</h2>
+        <p style="color: var(--text-muted);">
+            Search official Department of Foreign Employment (DoFE) active license records or curated consultancy databases.
+        </p>
+    </div>
+
+    <!-- Search Form -->
+    <div class="glass-card" style="margin-bottom: 2rem;">
+        <form method="GET" action="{% url 'main:verify_agency' %}">
+            <div class="form-group">
+                <label class="form-label">Organization Name</label>
+                <input type="text" name="query_name" value="{{ query_name }}" class="form-input" placeholder="e.g. Prestige International, Alfa Beta, SOS Manpower" required style="font-size: 1.05rem; padding: 0.85rem 1rem;">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">DoFE License Number (Optional)</label>
+                <input type="text" name="license_number" class="form-input" placeholder="e.g. 1050/074/075">
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; font-size: 1.05rem; padding: 0.85rem;">
+                <i class="fa-solid fa-magnifying-glass"></i> Check Registry Status
+            </button>
+        </form>
+    </div>
+
+    <!-- Verification Result Render -->
+    {% if result %}
+        <div class="glass-card" style="border-top: 4px solid {% if result.verdict_data.badge_color == 'green' %}#22c55e{% elif result.verdict_data.badge_color == 'yellow' %}#eab308{% elif result.verdict_data.badge_color == 'red' %}#ef4444{% else %}#94a3b8{% endif %};">
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+                <div>
+                    <span style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Search Input</span>
+                    <h3 style="font-size: 1.5rem; color: #ffffff;">{{ result.input_name }}</h3>
+                </div>
+                
+                <div>
+                    <span class="verdict-badge badge-{{ result.verdict_data.badge_color }}">
+                        {{ result.verdict_data.verdict_title }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Consultancy Specific Mandatory Disclaimer -->
+            {% if result.verdict_data.is_curated_disclaimer %}
+                <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.9rem; color: #fef08a;">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right: 0.5rem;"></i>
+                    <strong>Consultancy Notice:</strong> This organization is <em>manually curated, not government-verified</em> by DoFE. Consultancies cannot legally issue foreign recruitment visas or collect job placement fees.
+                </div>
+            {% endif %}
+
+            <!-- Matched Record Details -->
+            <div style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass); margin-bottom: 1.5rem;">
+                <h4 style="font-size: 1.05rem; margin-bottom: 0.75rem; color: var(--primary);">
+                    <i class="fa-solid fa-database"></i> Database Match Summary (Fuzzy Match: {{ result.match_score }}%)
+                </h4>
+                
+                {% if result.is_matched and result.matched_entity %}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.9rem;">
+                        <div><strong>Matched Name:</strong> {{ result.matched_entity.name }}</div>
+                        <div><strong>Registry Source:</strong> {{ result.verdict_data.source_info }}</div>
+                        <div><strong>License Status:</strong> {{ result.verdict_data.license_status }}</div>
+                        {% if result.matched_entity.license_number %}
+                            <div><strong>DoFE License #:</strong> {{ result.matched_entity.license_number }}</div>
+                        {% endif %}
+                        {% if result.matched_entity.contact %}
+                            <div><strong>Contact Info:</strong> {{ result.matched_entity.contact }}</div>
+                        {% endif %}
+                        {% if result.matched_entity.address %}
+                            <div><strong>Address:</strong> {{ result.matched_entity.address }}</div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">
+                        No matching agency or consultancy found with >= 85% similarity threshold in our verified registry.
+                    </p>
+                {% endif %}
+            </div>
+
+            <!-- Decision Reasons List -->
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="font-size: 1rem; margin-bottom: 0.5rem;">Verification Rationale:</h4>
+                <ul style="padding-left: 1.25rem; color: #cbd5e1; font-size: 0.9rem;">
+                    {% for reason in result.verdict_data.reasons %}
+                        <li style="margin-bottom: 0.35rem;">{{ reason }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Actions Bar -->
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; border-top: 1px solid var(--border-glass); padding-top: 1.25rem;">
+                <a href="{% url 'main:verdict_card' result.record_uuid %}" class="btn-primary" target="_blank">
+                    <i class="fa-solid fa-share-nodes"></i> View Shareable Verdict Card
+                </a>
+
+                {% if result.verdict_data.verdict == 'HIGH_RISK' %}
+                    <form method="POST" action="{% url 'main:report_scam' %}" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="entity_name" value="{{ result.input_name }}">
+                        <input type="hidden" name="entity_type" value="AGENCY">
+                        <input type="hidden" name="reason" value="Failed verification check: High Risk verdict triggered.">
+                        <button type="submit" class="btn-danger">
+                            <i class="fa-solid fa-flag"></i> Report Scam to Authorities
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

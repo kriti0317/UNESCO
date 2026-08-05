@@ -1,0 +1,96 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Verify Foreign University & Scholarship — Scam Verifier{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Verify University or Scholarship Institution</h2>
+        <p style="color: var(--text-muted);">
+            Cross-reference foreign universities against recognized domain lists (Hipolabs API + Global Accreditation Databases).
+        </p>
+    </div>
+
+    <!-- Search Form -->
+    <div class="glass-card" style="margin-bottom: 2rem;">
+        <form method="GET" action="{% url 'main:verify_university' %}">
+            <div class="form-group">
+                <label class="form-label">University / Institution Name</label>
+                <input type="text" name="university_name" value="{{ university_name }}" class="form-input" placeholder="e.g. University of Sydney, Harvard University, Tribhuvan University" required style="font-size: 1.05rem; padding: 0.85rem 1rem;">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Country (Optional)</label>
+                <input type="text" name="country" value="{{ country }}" class="form-input" placeholder="e.g. Australia, United States, Nepal, United Kingdom">
+            </div>
+
+            <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); width: 100%; justify-content: center; font-size: 1.05rem; padding: 0.85rem;">
+                <i class="fa-solid fa-graduation-cap"></i> Verify Institution
+            </button>
+        </form>
+    </div>
+
+    <!-- Result Display -->
+    {% if result %}
+        <div class="glass-card" style="border-top: 4px solid {% if result.verdict_data.badge_color == 'green' %}#22c55e{% elif result.verdict_data.badge_color == 'yellow' %}#eab308{% elif result.verdict_data.badge_color == 'red' %}#ef4444{% else %}#94a3b8{% endif %};">
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+                <div>
+                    <span style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Searched University</span>
+                    <h3 style="font-size: 1.5rem; color: #ffffff;">{{ result.university_name }}</h3>
+                </div>
+                
+                <div>
+                    <span class="verdict-badge badge-{{ result.verdict_data.badge_color }}">
+                        {{ result.verdict_data.verdict_title }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Detail Box -->
+            <div style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass); margin-bottom: 1.5rem;">
+                <h4 style="font-size: 1.05rem; margin-bottom: 0.75rem; color: var(--accent-green);">
+                    <i class="fa-solid fa-building-columns"></i> Institution Lookup Summary (Match Score: {{ result.match_score }}%)
+                </h4>
+                
+                {% if result.is_matched and result.matched_entity %}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.9rem;">
+                        <div><strong>Recognized Name:</strong> {{ result.matched_entity.name }}</div>
+                        <div><strong>Country:</strong> {{ result.matched_entity.country }}</div>
+                        <div><strong>Status:</strong> Recognized Foreign University</div>
+                        {% if result.matched_entity.website %}
+                            <div><strong>Official Domain:</strong> <a href="{{ result.matched_entity.website }}" target="_blank">{{ result.matched_entity.website }}</a></div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <p style="color: #cbd5e1; font-size: 0.9rem;">
+                        <strong>Not Found in Our Database:</strong> The university name was not matched in our verified Hipolabs/Wikipedia domain lists.
+                        <br><br>
+                        <em>Important Safety Guidance: This does not automatically mean the institution is fake. Please verify independently through the official Ministry of Education / Embassy recognition portal before making tuition payments.</em>
+                    </p>
+                {% endif %}
+            </div>
+
+            <!-- Reasons List -->
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="font-size: 1rem; margin-bottom: 0.5rem;">Verification Rationale:</h4>
+                <ul style="padding-left: 1.25rem; color: #cbd5e1; font-size: 0.9rem;">
+                    {% for reason in result.verdict_data.reasons %}
+                        <li style="margin-bottom: 0.35rem;">{{ reason }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Actions Bar -->
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; border-top: 1px solid var(--border-glass); padding-top: 1.25rem;">
+                <a href="{% url 'main:verdict_card' result.record_uuid %}" class="btn-primary" target="_blank">
+                    <i class="fa-solid fa-share-nodes"></i> View Shareable Verdict Card
+                </a>
+            </div>
+
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}
