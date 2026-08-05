@@ -2,6 +2,7 @@ import json
 import uuid
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
+from django.contrib import messages
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
@@ -57,6 +58,7 @@ def signup_view(request):
         UserProfile.objects.create(user=user, phone_number=phone, country=country)
         
         login(request, user)
+        messages.success(request, 'Account created successfully! You are now logged in.')
         return redirect('main:dashboard')
 
     return render(request, 'main/signup.html')
