@@ -241,6 +241,7 @@ Scholarship Letter Text:
 
 def fallback_extract_scholarship_letter(raw_text: str) -> dict:
     text = raw_text.strip()
+    normalized_text = text.lower()
     university_name = ""
     uni_match = re.search(r'(?:University|College|Institute|School|Academy|Ref|From)\s*:\s*([^\n\r,]+)', text, re.IGNORECASE)
     if uni_match:
@@ -253,12 +254,12 @@ def fallback_extract_scholarship_letter(raw_text: str) -> dict:
                 break
         if not university_name and lines:
             university_name = lines[0]
-            
+
     country = ""
     country_match = re.search(r'\b(Dubai|UAE|Qatar|Saudi Arabia|Malaysia|Kuwait|Bahrain|Oman|Japan|Korea|Australia|UK|United Kingdom|USA|United States|Canada|Nepal|Poland|Romania|Malta|Cyprus)\b', text, re.IGNORECASE)
     if country_match:
         country = country_match.group(1).title()
-        
+
     consultancy_name = ""
     cons_match = re.search(r'(?:via|processed by|consultancy|agent)\s*:\s*([^\n\r,]+)', text, re.IGNORECASE)
     if cons_match:
@@ -269,43 +270,50 @@ def fallback_extract_scholarship_letter(raw_text: str) -> dict:
             if re.search(r'(consultancy|education foundation|education services|visa services|career advisory)', line, re.IGNORECASE):
                 consultancy_name = line
                 break
-                
+
+    text_has_no_fee = re.search(r'\b(no|not)\b.*\b(upfront|processing|security|registration|administrative|deposit)\s*(fee|payment)\b|\b(no|not)\s*(fee|payment|deposit|charge)\s*(is|are|required|needed|requested)\b', normalized_text)
+    text_has_normal_review = re.search(r'\b(subject to|after|normal|standard)\s*(document|application|admission|review|evaluation)\b', normalized_text)
+    text_has_non_guarantee = re.search(r'\b(no|not)\s*(guarantee|guaranteed|assured)\b|\bsubject to\b', normalized_text)
+
     tuition_or_fee_mentioned = False
     guarantees_admission_language = False
     unrealistic_scholarship_percentage = False
     evidence_quotes = []
-    
+
     fee_patterns = [
-        r'(processing|security|registration|administrative)\s+fee',
+        r'(advance|upfront|processing|security|registration|administrative)\s+fee',
         r'deposit\s+(of|payment)',
-        r'(esewa|khalti|western\s*union|personal\s*account)'
+        r'(esewa|khalti|western\s*union|ime\s*pay|moneygram|personal\s*account|personal\s*bank)',
+        r'pay\s+(\$?\d+|via)',
     ]
     for pattern in fee_patterns:
         m = re.search(pattern, text, re.IGNORECASE)
-        if m:
+        if m and not text_has_no_fee:
             tuition_or_fee_mentioned = True
             evidence_quotes.append(f"Fee: '{m.group(0)}'")
-            
+
     adm_patterns = [
         r'(guaranteed|assured|direct)\s*(admission|enrollment|entry)',
         r'admission\s*(is)?\s*guaranteed'
     ]
     for pattern in adm_patterns:
         m = re.search(pattern, text, re.IGNORECASE)
-        if m:
+        if m and not text_has_normal_review and not text_has_non_guarantee:
             guarantees_admission_language = True
             evidence_quotes.append(f"Guaranteed Admission: '{m.group(0)}'")
-            
+
     pct_patterns = [
-        r'100%\s*(scholarship|free|waived)',
-        r'(full|fully\s*funded)\s*scholarship\s*(without|no\s+review)'
+        r'100%\s*(scholarship|free|waived|tuition)',
+        r'(full|fully\s*funded)\s*scholarship\s*(without|no\s+review)',
+        r'100%\s*full\s*tuition\s*waiver',
+        r'fully\s*funded\s*(housing|tuition)'
     ]
     for pattern in pct_patterns:
         m = re.search(pattern, text, re.IGNORECASE)
-        if m:
+        if m and not text_has_normal_review:
             unrealistic_scholarship_percentage = True
             evidence_quotes.append(f"Scholarship scale: '{m.group(0)}'")
-            
+
     return {
         "university_name": university_name[:200],
         "country": country[:100],
@@ -327,15 +335,38 @@ def run_scholarship_letter_pipeline(raw_text: str) -> dict:
     """
     # Stage 1: Extraction
     extracted = extract_scholarship_letter_fields(raw_text)
-    
+
     # Stage 2: DB Lookups
     university_verdict = verify_university(extracted["university_name"])
-    
+
     consultancy_verdict = None
     if extracted["consultancy_name"]:
         consultancy_verdict = verify_consultancy(extracted["consultancy_name"], consultancy_type="education")
-        
-    # Map red flags from extracted fields
+
+    normalized_text = (raw_text or '').lower()
+
+    # Strong negative-context guardrails: a letter that explicitly says
+    # "no upfront fee", "no deposit", or "subject to normal review" should
+    # not be promoted into a suspicious class just because the text mentions a
+    # fee or a degree level.
+    explicit_no_fee = re.search(r'\b(no|not)\b.*\b(upfront|processing|security|registration|administrative|deposit)\s*(fee|payment)\b|\b(no|not)\s*(fee|payment|deposit|charge)\s*(is|are|required|needed)\b', normalized_text)
+    explicit_normal_review = re.search(r'\b(subject to|after|normal|standard)\s*(document|application|admission|review|evaluation)\b', normalized_text)
+    explicit_non_guarantee = re.search(r'\b(no|not)\s*(guarantee|guaranteed|assured)\b|\bsubject to\b', normalized_text)
+
+    # Only mark fee demand if the text is actively requesting payment, not just
+    # describing a standard tuition or saying that there is no fee.
+    if extracted.get("tuition_or_fee_mentioned") and explicit_no_fee:
+        extracted["tuition_or_fee_mentioned"] = False
+
+    if extracted.get("guarantees_admission_language") and (explicit_normal_review or explicit_non_guarantee):
+        extracted["guarantees_admission_language"] = False
+
+    if extracted.get("unrealistic_scholarship_percentage") and not re.search(r'(100%\s*(scholarship|fee waiver|tuition waiver)|fully funded|without\s*review|no\s*evaluation|100%\s*full\s*tuition\s*waiver)', normalized_text):
+        extracted["unrealistic_scholarship_percentage"] = False
+
+    # Map red flags from extracted fields. Keep this deterministic so a normal
+    # scholarship-letter fake/not-fake risk checker behaves exactly the same
+    # across LLM or regex fallback modes.
     red_flags = []
     if extracted["tuition_or_fee_mentioned"]:
         red_flags.append("Upfront processing, security deposit, or administrative fees requested in scholarship offer.")
@@ -344,26 +375,45 @@ def run_scholarship_letter_pipeline(raw_text: str) -> dict:
     if extracted["unrealistic_scholarship_percentage"]:
         red_flags.append("Contains unrealistic benefit promises (e.g. 100% scholarship without standard application evaluation).")
 
+    # Extra safety net: if text mentions personal wallets / free-form bank transfers
+    # or any clear 'guarantee admission / scholarship' wording, add the common fake
+    # scholarship warning even if the LLM output is sparse.
+    if re.search(r'(esewa|khalti|ime pay|western union|moneygram|personal account|personal bank)', normalized_text):
+        red_flags.append("Requests payment using personal wallets or personal bank accounts instead of an official university/agency receipt.")
+    if re.search(r'(guaranteed|assured|direct)\s*(admission|scholarship|enrollment|entry)', normalized_text) and not explicit_non_guarantee:
+        red_flags.append("Letter uses guaranteed admission/scholarship language that normally requires formal institutional review.")
+    if re.search(r'(100%\s*(scholarship|fee waiver|tuition waiver)|fully funded|free tuition|100%\s*full\s*tuition\s*waiver)', normalized_text) and not explicit_normal_review:
+        red_flags.append("Contains an unusually unrealistic scholarship promise that usually requires a verified university offer and formal evaluation.")
+
+    # Deduplicate while preserving order.
+    ordered_flags = []
+    for flag in red_flags:
+        if flag not in ordered_flags:
+            ordered_flags.append(flag)
+    red_flags = ordered_flags
+
     # Stage 3: Risk Verdict
-    # Call get_risk_verdict once against the primary university check
     primary_verdict = get_risk_verdict(university_verdict, red_flags)
-    
-    # If a consultancy was mentioned, run its own get_risk_verdict check as well
+
     consultancy_check_data = None
     if consultancy_verdict:
-        # Consultancies are mapped to UNKNOWN in DB check, so get_risk_verdict returns "⚠️ Unknown — Verify Manually"
-        # unless they are not listed ("❌ Not Listed"), which maps to "🔴 High Risk"
         consultancy_risk = get_risk_verdict(consultancy_verdict, [])
         consultancy_check_data = {
             "verdict": consultancy_risk,
             "details": consultancy_verdict
         }
 
+    evidence = extracted["evidence_quotes"] or []
+    ordered_evidence = []
+    for item in evidence:
+        if item not in ordered_evidence:
+            ordered_evidence.append(item)
+
     return {
         "final_verdict": primary_verdict,
         "university_check": university_verdict,
         "consultancy_check": consultancy_check_data,
         "ai_detected_flags": red_flags,
-        "evidence": extracted["evidence_quotes"],
+        "evidence": ordered_evidence,
         "extracted_fields": extracted
     }

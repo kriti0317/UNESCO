@@ -3,6 +3,7 @@ from verification.models import Agency, Consultancy, University
 from main.models import VerificationRecord, ScamReport
 from main.fuzzy_matcher import match_entity
 from main.rule_engine import evaluate_verdict
+from verification.pipelines import run_scholarship_letter_pipeline
 
 class ScamVerifierUnitTests(TestCase):
 
@@ -26,6 +27,11 @@ class ScamVerifierUnitTests(TestCase):
         self.university = University.objects.create(
             name="University of Sydney",
             country="Australia",
+            recognized=True
+        )
+        self.university_toronto = University.objects.create(
+            name="University of Toronto",
+            country="Canada",
             recognized=True
         )
 
@@ -106,6 +112,46 @@ class ScamVerifierUnitTests(TestCase):
         )
         self.assertEqual(verdict['verdict'], 'HIGH_RISK')
         self.assertEqual(verdict['badge_color'], 'red')
+
+    def test_scholarship_pipeline_flags_common_fake_letter_patterns(self):
+        """Fake scholarship letters should be flagged for upfront fees, admission guarantees, and unrealistic scholarship promises."""
+        pipeline_result = run_scholarship_letter_pipeline(
+            "University: University of Sydney\n"
+            "Scholarship Offer: 100% full tuition waiver + guaranteed housing\n"
+            "Deposit $500 processing fee to personal eSewa account\n"
+            "Guaranteed admission to the program without interview\n"
+            "Processed by Global Education Services"
+        )
+
+        self.assertIn('Upfront processing, security deposit, or administrative fees requested in scholarship offer.', pipeline_result['ai_detected_flags'])
+        self.assertIn('Letter contains guaranteed admission, enrollment, or entry language.', pipeline_result['ai_detected_flags'])
+        self.assertIn('Contains unrealistic benefit promises (e.g. 100% scholarship without standard application evaluation).', pipeline_result['ai_detected_flags'])
+        self.assertTrue(pipeline_result['evidence'])
+        self.assertIn('Suspicious', pipeline_result['final_verdict'])
+
+    def test_small_scholarship_amount_and_degree_level_should_not_be_suspicious_by_default(self):
+        """A normal scholarship amount for Master or Bachelor study should not be auto-flagged just because a small amount or degree level appears in the letter."""
+        pipeline_result = run_scholarship_letter_pipeline(
+            "University: University of Sydney\n"
+            "Scholarship amount: USD 2000 for Master's degree\n"
+            "No upfront fee required\n"
+            "Admission is subject to normal document review"
+        )
+
+        self.assertEqual([], pipeline_result['ai_detected_flags'])
+        self.assertIn('Safe', pipeline_result['final_verdict'])
+
+    def test_small_scholarship_amount_with_no_fee_demand_must_not_raise_flag(self):
+        """A modest scholarship amount should not be treated as suspicious merely because it references fee or degree-level language."""
+        pipeline_result = run_scholarship_letter_pipeline(
+            "University: University of Toronto\n"
+            "Scholarship amount: USD 750 for Bachelor's degree\n"
+            "Standard tuition fee is stated in the official offer\n"
+            "No upfront payment is required"
+        )
+
+        self.assertEqual([], pipeline_result['ai_detected_flags'])
+        self.assertIn('Safe', pipeline_result['final_verdict'])
 
     def test_pii_omitted_from_verification_record(self):
         """Verify that VerificationRecord does not store full PII raw_text."""

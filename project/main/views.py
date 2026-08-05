@@ -200,6 +200,7 @@ def verify_agency(request):
 # ----------------------------------------------------
 # 4. University Verification Flow
 # ----------------------------------------------------
+@login_required
 def verify_university(request):
     university_name = request.GET.get('university_name', '').strip() or request.POST.get('university_name', '').strip()
     country = request.GET.get('country', '').strip() or request.POST.get('country', '').strip()
@@ -278,6 +279,7 @@ def verify_university(request):
 # ----------------------------------------------------
 # 5. Offer Letter Upload & 3-Stage Verification Pipeline
 # ----------------------------------------------------
+@login_required
 def verify_offer_letter(request):
     result = None
     if request.method == 'POST':
@@ -364,6 +366,7 @@ def verify_offer_letter(request):
     return render(request, 'main/verify_offer_letter.html', {'result': result})
 
 
+@login_required
 def verify_scholarship_letter(request):
     result = None
     if request.method == 'POST':
