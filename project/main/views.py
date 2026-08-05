@@ -88,6 +88,7 @@ def logout_view(request):
 # ----------------------------------------------------
 # 3. Agency & Consultancy Verification Flow
 # ----------------------------------------------------
+@login_required
 def verify_agency(request):
     query_name = request.GET.get('query_name', '').strip() or request.POST.get('query_name', '').strip()
     license_number = request.GET.get('license_number', '').strip() or request.POST.get('license_number', '').strip()
@@ -196,6 +197,9 @@ def verify_agency(request):
     return render(request, 'main/verify_agency.html', {'query_name': query_name, 'check_type': check_type, 'result': result})
 
 
+# ----------------------------------------------------
+# 4. University Verification Flow
+# ----------------------------------------------------
 def verify_university(request):
     university_name = request.GET.get('university_name', '').strip() or request.POST.get('university_name', '').strip()
     country = request.GET.get('country', '').strip() or request.POST.get('country', '').strip()
@@ -271,6 +275,9 @@ def verify_university(request):
     return render(request, 'main/verify_university.html', {'university_name': university_name, 'country': country, 'result': result})
 
 
+# ----------------------------------------------------
+# 5. Offer Letter Upload & 3-Stage Verification Pipeline
+# ----------------------------------------------------
 def verify_offer_letter(request):
     result = None
     if request.method == 'POST':
@@ -447,6 +454,7 @@ def verify_scholarship_letter(request):
 # ----------------------------------------------------
 # 6. Report Scam Action (Mocked Ministry Email Alert)
 # ----------------------------------------------------
+@login_required
 def report_scam(request):
     if request.method == 'POST':
         entity_name = request.POST.get('entity_name', 'Unknown')
