@@ -45,14 +45,13 @@ class Command(BaseCommand):
 
         created_agencies = 0
         for name, lic, status, addr, contact in agency_data:
-            _, created = Agency.objects.get_or_create(
-                name=name,
+            full_addr = f"{addr} ({contact})" if contact else addr
+            _, created = Agency.objects.update_or_create(
+                permission_no=lic,
                 defaults={
-                    'license_number': lic,
-                    'status': status,
-                    'address': addr,
-                    'contact': contact,
-                    'source_url': 'https://foreignjob.dofe.gov.np',
+                    'name': name,
+                    'status': status.lower(),
+                    'address': full_addr,
                 }
             )
             if created:
@@ -87,13 +86,13 @@ class Command(BaseCommand):
 
         created_consultancies = 0
         for name, addr, contact in consultancy_names:
-            _, created = Consultancy.objects.get_or_create(
+            full_addr = f"{addr} ({contact})" if contact else addr
+            _, created = Consultancy.objects.update_or_create(
                 name=name,
+                consultancy_type='education',
                 defaults={
-                    'status': 'MANUALLY_CURATED',
-                    'source_note': 'manually curated, not government-verified',
-                    'address': addr,
-                    'contact': contact,
+                    'address': full_addr,
+                    'notes': 'Manually curated education consultancy record.',
                 }
             )
             if created:
@@ -105,61 +104,60 @@ class Command(BaseCommand):
         self.stdout.write("Seeding Universities...")
         university_data = [
             # Nepal
-            ("Tribhuvan University", "Nepal", "https://tu.edu.np"),
-            ("Kathmandu University", "Nepal", "https://ku.edu.np"),
-            ("Pokhara University", "Nepal", "https://pu.edu.np"),
-            ("Purbanchal University", "Nepal", "https://purbanchaluniv.edu.np"),
-            ("Lumbini Buddhist University", "Nepal", "https://lbu.edu.np"),
-            ("Mid-Western University", "Nepal", "https://mwu.edu.np"),
-            ("Far-Western University", "Nepal", "https://fwu.edu.np"),
+            ("Tribhuvan University", "Nepal", "tu.edu.np"),
+            ("Kathmandu University", "Nepal", "ku.edu.np"),
+            ("Pokhara University", "Nepal", "pu.edu.np"),
+            ("Purbanchal University", "Nepal", "purbanchaluniv.edu.np"),
+            ("Lumbini Buddhist University", "Nepal", "lbu.edu.np"),
+            ("Mid-Western University", "Nepal", "mwu.edu.np"),
+            ("Far-Western University", "Nepal", "fwu.edu.np"),
 
             # USA
-            ("Harvard University", "United States", "https://harvard.edu"),
-            ("Massachusetts Institute of Technology (MIT)", "United States", "https://mit.edu"),
-            ("Stanford University", "United States", "https://stanford.edu"),
-            ("Columbia University", "United States", "https://columbia.edu"),
-            ("University of California, Berkeley", "United States", "https://berkeley.edu"),
-            ("New York University (NYU)", "United States", "https://nyu.edu"),
-            ("University of Texas at Arlington", "United States", "https://uta.edu"),
+            ("Harvard University", "United States", "harvard.edu"),
+            ("Massachusetts Institute of Technology (MIT)", "United States", "mit.edu"),
+            ("Stanford University", "United States", "stanford.edu"),
+            ("Columbia University", "United States", "columbia.edu"),
+            ("University of California, Berkeley", "United States", "berkeley.edu"),
+            ("New York University (NYU)", "United States", "nyu.edu"),
+            ("University of Texas at Arlington", "United States", "uta.edu"),
 
             # Australia
-            ("The University of Sydney", "Australia", "https://sydney.edu.au"),
-            ("The University of Melbourne", "Australia", "https://unimelb.edu.au"),
-            ("Monash University", "Australia", "https://monash.edu"),
-            ("The University of Queensland", "Australia", "https://uq.edu.au"),
-            ("UNSW Sydney (University of New South Wales)", "Australia", "https://unsw.edu.au"),
-            ("Macquarie University", "Australia", "https://mq.edu.au"),
+            ("The University of Sydney", "Australia", "sydney.edu.au"),
+            ("The University of Melbourne", "Australia", "unimelb.edu.au"),
+            ("Monash University", "Australia", "monash.edu"),
+            ("The University of Queensland", "Australia", "uq.edu.au"),
+            ("UNSW Sydney (University of New South Wales)", "Australia", "unsw.edu.au"),
+            ("Macquarie University", "Australia", "mq.edu.au"),
 
             # UK
-            ("University of Oxford", "United Kingdom", "https://ox.ac.uk"),
-            ("University of Cambridge", "United Kingdom", "https://cam.ac.uk"),
-            ("Imperial College London", "United Kingdom", "https://imperial.ac.uk"),
-            ("University College London (UCL)", "United Kingdom", "https://ucl.ac.uk"),
-            ("The University of Edinburgh", "United Kingdom", "https://ed.ac.uk"),
+            ("University of Oxford", "United Kingdom", "ox.ac.uk"),
+            ("University of Cambridge", "United Kingdom", "cam.ac.uk"),
+            ("Imperial College London", "United Kingdom", "imperial.ac.uk"),
+            ("University College London (UCL)", "United Kingdom", "ucl.ac.uk"),
+            ("The University of Edinburgh", "United Kingdom", "ed.ac.uk"),
 
             # Canada
-            ("University of Toronto", "Canada", "https://utoronto.ca"),
-            ("University of British Columbia", "Canada", "https://ubc.ca"),
-            ("McGill University", "Canada", "https://mcgill.ca"),
-            ("University of Waterloo", "Canada", "https://uwaterloo.ca"),
+            ("University of Toronto", "Canada", "utoronto.ca"),
+            ("University of British Columbia", "Canada", "ubc.ca"),
+            ("McGill University", "Canada", "mcgill.ca"),
+            ("University of Waterloo", "Canada", "uwaterloo.ca"),
 
             # Japan & Korea & India
-            ("The University of Tokyo", "Japan", "https://u-tokyo.ac.jp"),
-            ("Kyoto University", "Japan", "https://kyoto-u.ac.jp"),
-            ("Seoul National University", "Korea, Republic of", "https://snu.ac.kr"),
-            ("Jawaharlal Nehru University", "India", "https://jnu.ac.in"),
-            ("Indian Institute of Technology Delhi (IITD)", "India", "https://iitd.ac.in"),
+            ("The University of Tokyo", "Japan", "u-tokyo.ac.jp"),
+            ("Kyoto University", "Japan", "kyoto-u.ac.jp"),
+            ("Seoul National University", "Korea, Republic of", "snu.ac.kr"),
+            ("Jawaharlal Nehru University", "India", "jnu.ac.in"),
+            ("Indian Institute of Technology Delhi (IITD)", "India", "iitd.ac.in"),
         ]
 
         created_unis = 0
         for name, country, web in university_data:
-            _, created = University.objects.get_or_create(
+            clean_dom = web.replace('https://', '').replace('http://', '').strip()
+            _, created = University.objects.update_or_create(
                 name=name,
                 country=country,
                 defaults={
-                    'source': 'Hipolabs/Wikipedia',
-                    'recognized': True,
-                    'website': web
+                    'domain': clean_dom
                 }
             )
             if created:
@@ -173,16 +171,26 @@ class Command(BaseCommand):
                 for item in h_data[:15]:
                     u_name = item.get('name')
                     domains = item.get('web_pages', [])
-                    web = domains[0] if domains else None
+                    web = domains[0] if domains else ''
+                    clean_dom = web.replace('https://', '').replace('http://', '').strip()
                     if u_name:
-                        _, c = University.objects.get_or_create(
+                        _, c = University.objects.update_or_create(
                             name=u_name,
                             country='Australia',
-                            defaults={'source': 'Hipolabs API', 'recognized': True, 'website': web}
+                            defaults={'domain': clean_dom}
                         )
                         if c: created_unis += 1
         except Exception as e:
             self.stdout.write(f"Hipolabs API fetch optional note: {e}")
 
-        self.stdout.write(f"Created {created_unis} Universities.")
+
+        # 4. Ingest docs/ CSV Datasets
+        self.stdout.write("Ingesting docs/ CSV datasets...")
+        try:
+            from django.core.management import call_command
+            call_command('sync_csv_data')
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f"CSV Ingestion error: {e}"))
+
         self.stdout.write(self.style.SUCCESS("Database seeding completed successfully!"))
+

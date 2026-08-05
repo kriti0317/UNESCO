@@ -114,3 +114,25 @@ class ScamVerifierUnitTests(TestCase):
             verdict="SAFE"
         )
         self.assertFalse(hasattr(record, 'raw_text'))
+
+    def test_verification_fuzzy_find_wratio(self):
+        """Test verification fuzzy_find with WRatio matching partial names."""
+        from verification.fuzzy_matcher import fuzzy_find
+        match, score = fuzzy_find("Prestige Overseas", Agency.objects.all(), field="name")
+        self.assertIsNotNone(match)
+        self.assertEqual(match.id, self.active_agency.id)
+
+    def test_sync_csv_data_command(self):
+        """Test sync_csv_data management command execution."""
+        from django.core.management import call_command
+        call_command('sync_csv_data')
+        self.assertGreater(Agency.objects.count(), 2)
+        self.assertGreater(Consultancy.objects.count(), 1)
+        self.assertGreater(University.objects.count(), 1)
+
+    def test_chatbot_rag_entity_retrieval(self):
+        """Test chatbot RAG query retrieves correct entity despite conversational stopwords."""
+        from main.chatbot import query_rag_chatbot
+        reply = query_rag_chatbot("Can you please check about Prestige Overseas?")
+        self.assertIn("Prestige Overseas", reply)
+

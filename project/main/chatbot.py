@@ -29,48 +29,91 @@ General Verification Guidance for Nepal Foreign Employment & Studies:
 
 GROQ_KEY = "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"
 
+import re
+from verification.fuzzy_matcher import fuzzy_find
+
+STOP_WORDS = {
+    'can', 'you', 'tell', 'me', 'about', 'check', 'verify', 'verification', 'is', 'are',
+    'the', 'this', 'that', 'for', 'with', 'from', 'what', 'where', 'how', 'which', 'who',
+    'please', 'agency', 'consultancy', 'university', 'college', 'safe', 'scam', 'fake',
+    'genuine', 'real', 'active', 'status', 'namaste', 'hello', 'hi', 'good', 'info',
+    'know', 'want', 'give', 'does', 'have', 'valid', 'licensed'
+}
+
+
 def query_rag_chatbot(user_message):
     """
-    Lively RAG Chatbot using keyword retrieval over Agency, Consultancy, and University models.
+    Lively RAG Chatbot using keyword and fuzzy entity retrieval over Agency, Consultancy, and University models.
     Queries Groq API with live credential.
     """
     if not user_message or not user_message.strip():
         return "Namaste! 🙏 I am Aasha, your AI safety guide. Ask me anything about checking manpower agencies, consultancies, or foreign university scholarships!"
         
     query = user_message.strip()
-    keywords = [w for w in query.split() if len(w) > 2]
+    
+    # Extract clean words and filter out common conversational stop-words
+    all_words = re.findall(r'\w+', query.lower())
+    search_kws = [w for w in all_words if len(w) > 2 and w not in STOP_WORDS]
+    if not search_kws:
+        search_kws = [w for w in all_words if len(w) > 2]
     
     context_blocks = []
     context_blocks.append(f"Safety Guidance Rules:\n{GUIDANCE_RULES_TEXT}")
     
-    # Keyword SQL Retrieval over local database
-    if keywords:
-        # 1. Search Agencies
+    found_agencies = []
+    found_consultancies = []
+    found_universities = []
+
+    # 1. Search Agencies (SQL + Fuzzy Fallback)
+    if search_kws:
         agency_q = Q()
-        for kw in keywords[:3]:
-            agency_q |= Q(name__icontains=kw) | Q(license_number__icontains=kw)
-        agencies = Agency.objects.filter(agency_q)[:5]
-        if agencies:
-            ag_str = "\n".join([f"- Agency: {a.name} | License: {a.license_number or 'N/A'} | Status: {a.get_status_display()} | Address: {a.address}" for a in agencies])
-            context_blocks.append(f"Database Matches (Agencies):\n{ag_str}")
+        for kw in search_kws[:4]:
+            agency_q |= Q(name__icontains=kw) | Q(permission_no__icontains=kw)
+        agencies = list(Agency.objects.filter(agency_q)[:5])
+        found_agencies.extend(agencies)
 
-        # 2. Search Consultancies
+    if not found_agencies:
+        fuzzy_agency, score = fuzzy_find(query, Agency.objects.all(), field="name", threshold=75)
+        if fuzzy_agency:
+            found_agencies.append(fuzzy_agency)
+
+    if found_agencies:
+        ag_str = "\n".join([f"- Agency: {a.name} | License: {a.permission_no} | Status: {a.get_status_display()} | Address: {a.address}" for a in found_agencies])
+        context_blocks.append(f"Database Matches (Agencies):\n{ag_str}")
+
+    # 2. Search Consultancies (SQL + Fuzzy Fallback)
+    if search_kws:
         cons_q = Q()
-        for kw in keywords[:3]:
+        for kw in search_kws[:4]:
             cons_q |= Q(name__icontains=kw)
-        consultancies = Consultancy.objects.filter(cons_q)[:5]
-        if consultancies:
-            cs_str = "\n".join([f"- Consultancy: {c.name} | Status: {c.status} ({c.source_note}) | Address: {c.address}" for c in consultancies])
-            context_blocks.append(f"Database Matches (Consultancies):\n{cs_str}")
+        consultancies = list(Consultancy.objects.filter(cons_q)[:5])
+        found_consultancies.extend(consultancies)
 
-        # 3. Search Universities
+    if not found_consultancies:
+        fuzzy_cons, score = fuzzy_find(query, Consultancy.objects.all(), field="name", threshold=75)
+        if fuzzy_cons:
+            found_consultancies.append(fuzzy_cons)
+
+    if found_consultancies:
+        cs_str = "\n".join([f"- Consultancy: {c.name} ({c.get_consultancy_type_display()}) | Address: {c.address} | Notes: {c.notes}" for c in found_consultancies])
+        context_blocks.append(f"Database Matches (Consultancies):\n{cs_str}")
+
+    # 3. Search Universities (SQL + Fuzzy Fallback)
+    if search_kws:
         uni_q = Q()
-        for kw in keywords[:3]:
+        for kw in search_kws[:4]:
             uni_q |= Q(name__icontains=kw) | Q(country__icontains=kw)
-        unis = University.objects.filter(uni_q)[:5]
-        if unis:
-            u_str = "\n".join([f"- University: {u.name} ({u.country}) | Recognized: {u.recognized} | Source: {u.source}" for u in unis])
-            context_blocks.append(f"Database Matches (Universities):\n{u_str}")
+        unis = list(University.objects.filter(uni_q)[:5])
+        found_universities.extend(unis)
+
+    if not found_universities:
+        fuzzy_uni, score = fuzzy_find(query, University.objects.all(), field="name", threshold=75)
+        if fuzzy_uni:
+            found_universities.append(fuzzy_uni)
+
+    if found_universities:
+        u_str = "\n".join([f"- University: {u.name} ({u.country}) | Domain: {u.domain}" for u in found_universities])
+        context_blocks.append(f"Database Matches (Universities):\n{u_str}")
 
     full_context = "\n\n".join(context_blocks)
 
@@ -109,3 +152,4 @@ def query_rag_chatbot(user_message):
         "\n👉 Note: To check the official verdict for a specific organization, please run the official Verification Tool on the main dashboard!"
     ]
     return "\n".join(response)
+
